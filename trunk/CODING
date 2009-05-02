@@ -1,0 +1,17 @@
+PyCi Coding Standards(draft)
+
+* General conventions
+  Please use TEMPLATE.py as the template for all your Python
+  source. Especially, all non-ascii characters should be in UTF-8
+  coding.
+
+  Only add #!(sharp-bang) for scripts.
+
+* For program coding
+  Please follow PEP-8 [1]
+
+* For document
+  Please use Epydoc's Epytext Markup Language [2] in your docstrings.
+
+[1] http://www.python.org/dev/peps/pep-0008/
+[2] http://epydoc.sourceforge.net/manual-epytext.html
