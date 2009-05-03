@@ -10,7 +10,7 @@
 基于字典
 - 正向最大匹配
 - 逆向最大匹配
-- MMSEG [1]
+- MMSEG <http://technology.chtsai.org/mmseg/>
 
 有监督学习
 - n-gram
@@ -20,5 +20,3 @@
 无监督学习
 - Sun Maosong
 - ???
-
-[1] http://technology.chtsai.org/mmseg/
