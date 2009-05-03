@@ -27,7 +27,6 @@ class DZWZCorpusReader(BaseCorpusReader):
         @type coding: string
         @param coding: encoding for the corpus file
         """
-        self._file = file(path, "rU")
         self._coding = coding
         self._path = path
 
@@ -37,7 +36,8 @@ class DZWZCorpusReader(BaseCorpusReader):
         @return: a generator iterates over all paragraphs in
         appearances order
         """
-        for para in self._file.readlines():
+        corpus_file = file(self._path, "rU")
+        for para in corpus_file.readlines():
             # strip off white spaces
             para = para.strip()
             if para:

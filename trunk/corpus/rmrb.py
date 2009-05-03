@@ -33,7 +33,6 @@ class RMRBCorpusReader(BaseCorpusReader):
         @type coding: string
         @param coding: encoding for the corpus file
         """
-        self._file = file(path, "rU")
         self._coding = coding
         self._path = path
 
@@ -45,7 +44,8 @@ class RMRBCorpusReader(BaseCorpusReader):
         @return: a generator iterates over all paragraphs in
         appearances order
         """
-        for para in self._file.readlines():
+        corpus_file = file(self._path, "rU")
+        for para in corpus_file.readlines():
             # strip off white spaces
             para = para.strip()
             if para:
@@ -79,6 +79,7 @@ class RMRBCorpusReader(BaseCorpusReader):
 
 
 if __name__ == "__main__":
+    # demo and test
     r = RMRBCorpusReader("/var/PD_1998_01_POS.txt")
     for word in r.tagged_words():
         print word[0], word[1]
