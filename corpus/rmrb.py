@@ -72,7 +72,12 @@ class RMRBCorpusReader(BaseCorpusReader):
         @return: a list of tuples of words and POS tags
         """
         for word in sent.split():
-            yield tuple(word.split("/"))
+            w, t= word.split("/")
+            if w.startswith("["):
+                w = w[1:]
+            if w.endswith("]"):
+                w = w[:-1]
+            yield w, t
 
     def __repr__(self):
         return "<RMRBCorpusReader: %s>" % self._path
