@@ -28,13 +28,13 @@ class Trie(object):
         """
         self._trie_root = TrieNode(None)
         for i in keys:
-            self._trie_root.insert(i, value(i))
+            self[i] = value(i)
 
     def __getitem__(self, key):
-        return self._trie_root.lookup(key)
+        return self._trie_root.lookup(key, 0)
 
     def __setitem__(self, key, value):
-        return self._trie_root.insert(key, value)
+        return self._trie_root.insert(key, 0, value)
 
     def longest_prefix(self, seq):
         """Find the longest prefix of seq that is in the trie.
@@ -42,15 +42,13 @@ class Trie(object):
         @type seq: random accessible object with hashable elements
         @param seq: from where the longest prefix will be extracted
         """
-        return self._trie_root.longest_prefix(seq)
+        return self._trie_root.longest_prefix(seq, 0)
 
 
 class TrieNode(object):
     """A node for a trie -- you should use class Trie to access data
     stored here.
     """
-
-    # FIXME: first, rest in insert, longest_prefix, lookup is SLOW
 
     def __init__(self, label):
         """Construct a trie node with label.
@@ -62,57 +60,60 @@ class TrieNode(object):
         self._child = {}
         self._value = None
 
-    def insert(self, key, value):
+    def insert(self, key, offset, value):
         """Insert a node with key, if the node already exists, update
         its value.
 
         @type key: random accessible object of hashable elements
         @param key: the key for updating
+        @type offset: non-negative interge
+        @param offset: starting part of actual key
         @type value: anything you like
         @param value: the value for the key
         """
-        if not key:
+        if offset == len(key):
             self._value = value
         else:
-            first = key[0]
-            rest = key[1:]
+            first = key[offset]
             if first not in self._child:
                 self._child[first] = TrieNode(first)
-            self._child[first].insert(rest, value)
+            self._child[first].insert(key, offset + 1, value)
 
-    def lookup(self, key):
+    def lookup(self, key, offset):
         """Lookup a node with key.
 
         @type key: random accessible object of hashable elements
         @param key: the key for updating
+        @type offset: non-negative interge
+        @param offset: starting part of actual key
         @return: the value
         """
-        if not key:
+        if offset == len(key):
             return self._value
         else:
-            first = key[0]
-            rest = key[1:]
+            first = key[offset]
             if first not in self._child:
                 raise KeyError
-            return self._child[first].lookup(rest)
+            return self._child[first].lookup(key, offset + 1)
 
-    def longest_prefix(self, seq):
+    def longest_prefix(self, seq, offset):
         """Find the longest prefix of seq starting at this node.
 
         @seq: random accessible object with hashable elements
         @param seq: from where the longest prefix will be extracted
+        @type offset: non-negative interge
+        @param offset: starting part of actual key
         """
-        if not seq:
+        if offset == len(seq):
             return self._label
         else:
-            first = seq[0]
-            rest = seq[1:]
+            first = seq[offset]
             if first not in self._child:
                 return self._label
             elif self._label:
-                return self._label + self._child[first].longest_prefix(rest)
+                return self._label + self._child[first].longest_prefix(seq, offset + 1)
             else:
-                return self._child[first].longest_prefix(rest)
+                return self._child[first].longest_prefix(seq, offset + 1)
 
 
 if __name__ == "__main__":
