@@ -88,6 +88,18 @@
 
 }}
 
+= MAXENT =
+{{Cite conference
+| publisher = Jeju Island, Korea
+| pages = 161–164
+| last = Low
+| first = J. K.
+| coauthors = H. T. Ng, W. Guo
+| title = A maximum entropy approach to Chinese word segmentation
+| booktitle = Proceedings of the Fourth SIGHAN Workshop on Chinese Language Processing
+| date = 2005
+}}
+
 = 无监督学习 =
 
 ﻿{{Cite journal
@@ -114,16 +126,7 @@
 
 
 
-{{Cite conference
-| publisher = Jeju Island, Korea
-| pages = 161–164
-| last = Low
-| first = J. K.
-| coauthors = H. T. Ng, W. Guo
-| title = A maximum entropy approach to Chinese word segmentation
-| booktitle = Proceedings of the Fourth SIGHAN Workshop on Chinese Language Processing
-| date = 2005
-}}
+
 
 {{Cite conference
 
