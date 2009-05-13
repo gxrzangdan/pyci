@@ -17,7 +17,7 @@ class Trie(object):
     For details, see http://en.wikipedia.org/wiki/Trie
     """
 
-    def __init__(self, keys, value=lambda x:0):
+    def __init__(self, keys=None, value=lambda x:0):
         """Construct a trie from keys.
 
         @type keys: random accessible object with hashable elements
@@ -27,8 +27,9 @@ class Trie(object):
         everything to 0
         """
         self._trie_root = TrieNode(None)
-        for i in keys:
-            self[i] = value(i)
+        if keys:
+            for i in keys:
+                self[i] = value(i)
 
     def __getitem__(self, key):
         return self._trie_root.lookup(key, 0)
@@ -36,13 +37,18 @@ class Trie(object):
     def __setitem__(self, key, value):
         return self._trie_root.insert(key, 0, value)
 
-    def longest_prefix(self, seq):
-        """Find the longest prefix of seq that is in the trie.
+    def longest_prefix(self, seq, offset=0):
+        """Find the longest prefix of seq starting at offset that is
+        in the trie.
 
         @type seq: random accessible object with hashable elements
         @param seq: from where the longest prefix will be extracted
+        @type offset: non-negative integer
+        @param offset: starting index
+
+        @return: the index of the element next to the longest prefix
         """
-        return self._trie_root.longest_prefix(seq, 0)
+        return self._trie_root.longest_prefix(seq, offset)
 
 
 class TrieNode(object):
@@ -105,25 +111,32 @@ class TrieNode(object):
         @param offset: starting part of actual key
         """
         if offset == len(seq):
-            return self._label
+            return offset
         else:
             first = seq[offset]
             if first not in self._child:
-                return self._label
-            elif self._label:
-                return self._label + self._child[first].longest_prefix(seq, offset + 1)
+                return offset
             else:
                 return self._child[first].longest_prefix(seq, offset + 1)
 
 
-if __name__ == "__main__":
-    # demo
-    from corpus import rmrb
+def demo():
+    """Demo for trie
+    """
+    from pyci.corpus import rmrb
     words = [i for i in rmrb.words()]
     trie = Trie(words)
-    sent = raw_input("Give me a sentence: ").decode("utf8")
-    pref = trie.longest_prefix(sent)
-    print pref
-    print trie[pref]
-    trie[pref] = 1234
-    print trie[pref]
+    sent = u"那么看来只能不起名字了。"
+    offset = 0
+    idx = trie.longest_prefix(sent, offset)
+    while offset < len(sent):
+        pref = sent[offset:idx]
+        print pref
+        print trie[pref]
+        trie[pref] = 1234
+        print trie[pref]
+        offset = idx
+        idx = trie.longest_prefix(sent, offset)
+
+if __name__ == "__main__":
+    demo()
