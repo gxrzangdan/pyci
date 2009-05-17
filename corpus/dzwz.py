@@ -53,7 +53,7 @@ class DZWZCorpusReader(BaseCorpusReader):
         @return: a list of segmented sentences
         """
         # TODO: make a real sentence segmentor.
-        yield para
+        return [para]
 
     def seg_words(cls, sent):
         """Segment a raw sentence into a list of tuples of words and
@@ -61,8 +61,10 @@ class DZWZCorpusReader(BaseCorpusReader):
 
         @return: a list of tuples of words and POS tags
         """
+        res = []
         for word in sent.split():
-            yield tuple(word.split("/"))
+            res.append(tuple(word.split("/")))
+        return res
 
     def __repr__(self):
         return "<DZWZCorpusReader: %s>" % self._path

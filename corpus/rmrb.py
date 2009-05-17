@@ -63,7 +63,7 @@ class RMRBCorpusReader(BaseCorpusReader):
         @return: a list of segmented sentences
         """
         # TODO: make a real sentence segmentor.
-        yield para
+        return [para]
 
     def seg_words(cls, sent):
         """Segment a raw sentence into a list of tuples of words and
@@ -71,13 +71,15 @@ class RMRBCorpusReader(BaseCorpusReader):
 
         @return: a list of tuples of words and POS tags
         """
+        res = []
         for word in sent.split():
             w, t= word.split("/")
             if w.startswith("["):
                 w = w[1:]
             if w.endswith("]"):
                 w = w[:-1]
-            yield w, t
+            res.append((w, t))
+        return res
 
     def __repr__(self):
         return "<RMRBCorpusReader: %s>" % self._path
