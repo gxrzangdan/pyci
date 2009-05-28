@@ -50,6 +50,12 @@ class Trie(object):
         """
         return self._trie_root.longest_prefix(seq, offset)
 
+    def __str__(self):
+        return str(self._trie_root)
+
+    def __repr__(self):
+        return "<Trie: 0x%08x>" % id(self)
+
 
 class TrieNode(object):
     """A node for a trie -- you should use class Trie to access data
@@ -118,6 +124,18 @@ class TrieNode(object):
                 return offset
             else:
                 return self._child[first].longest_prefix(seq, offset + 1)
+
+    def __str__(self):
+        if self._child:
+            return "(" + str(self._label) + " " + \
+                   " ".join([str(self._child[i])
+                             for i in sorted(self._child)]) + \
+                   ")"
+        else:
+            return "(" + str(self._label) + ")"
+
+    def __repr__(self):
+        return "<Trie: 0x%08x>" % id(self)
 
 
 def demo():
