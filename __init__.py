@@ -17,3 +17,9 @@ __version__ = "0.0"
 import corpus
 import fmm
 import trie
+
+if __name__ == "__main__":
+    print "TRIE"
+    trie.demo()
+    print "FMM"
+    fmm.demo()

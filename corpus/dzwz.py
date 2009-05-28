@@ -44,6 +44,7 @@ class DZWZCorpusReader(BaseCorpusReader):
                 # decode into Unicode
                 para = para.decode(self._coding)
                 yield para
+        corpus_file.close()
 
     def seg_sents(cls, para):
         """Segment a raw paragraph into a list of sentences.
@@ -70,8 +71,17 @@ class DZWZCorpusReader(BaseCorpusReader):
         return "<DZWZCorpusReader: %s>" % self._path
 
 
-if __name__ == "__main__":
-    # demo and test
+def demo():
+    """Demo for DZWZCorpusReader"""
     d = DZWZCorpusReader("/var/Readers_Digest.txt")
+    count = 0
     for word in d.tagged_words():
         print word[0], word[1]
+        count += 1
+        if count == 10:
+            break
+
+
+if __name__ == "__main__":
+    # demo and test
+    demo()
