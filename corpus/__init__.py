@@ -25,15 +25,16 @@ get part of the PFR Renmin Ribao Tagged Corpus data for free at
 """
 
 __all__ = ["BaseCorpusReader", "RMRBCorpusReader", "DZWZCorpusReader",
-           "rmrb", "dzwz"]
+           "Bakeoff2005TrainReader", "Bakeoff2005TestReader"]
 
 from api import BaseCorpusReader
 from rmrb import RMRBCorpusReader
 from dzwz import DZWZCorpusReader
+from bakeoff2005 import Bakeoff2005TrainReader, Bakeoff2005TestReader
 
-# Paths for corpus data
-_rmrb_path = "/var/PD_1998_01_POS.txt"
-_dzwz_path = "/var/Readers_Digest.txt"
+# # Paths for corpus data
+# _rmrb_path = "/var/PD_1998_01_POS.txt"
+# _dzwz_path = "/var/Readers_Digest.txt"
 
-rmrb = RMRBCorpusReader(_rmrb_path)
-dzwz = DZWZCorpusReader(_dzwz_path)
+# rmrb = RMRBCorpusReader(_rmrb_path)
+# dzwz = DZWZCorpusReader(_dzwz_path)
