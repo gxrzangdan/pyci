@@ -80,9 +80,11 @@ class TrieNode(object):
         @param key: the key for updating
         @type offset: non-negative interge
         @param offset: starting part of actual key
-        @type value: anything you like
+        @type value: anything you like but None
         @param value: the value for the key
         """
+        if value is None:
+            raise ValueError
         if offset == len(key):
             self._value = value
         else:
@@ -101,7 +103,10 @@ class TrieNode(object):
         @return: the value
         """
         if offset == len(key):
-            return self._value
+            if self._value is not None:
+                return self._value
+            else:
+                raise KeyError
         else:
             first = key[offset]
             if first not in self._child:
@@ -115,24 +120,32 @@ class TrieNode(object):
         @param seq: from where the longest prefix will be extracted
         @type offset: non-negative interge
         @param offset: starting part of actual key
+        @return: the index if found, otherwise None
         """
         if offset == len(seq):
-            return offset
+            if self._value is not None:
+                return offset
+            else:
+                return None
         else:
             first = seq[offset]
             if first not in self._child:
-                return offset
+                if self._value is not None:
+                    return offset
+                else:
+                    return None
             else:
-                return self._child[first].longest_prefix(seq, offset + 1)
+                return self._child[first].longest_prefix(seq, offset + 1) or \
+                       (offset if self._value is not None else None)
 
     def __str__(self):
         if self._child:
-            return "(" + str(self._label) + " " + \
+            return "(" + self._label + " " + \
                    " ".join([str(self._child[i])
                              for i in sorted(self._child)]) + \
                    ")"
         else:
-            return "(" + str(self._label) + ")"
+            return "(" + self._label + ")"
 
     def __repr__(self):
         return "<Trie: 0x%08x>" % id(self)
@@ -141,18 +154,22 @@ class TrieNode(object):
 def demo():
     """Demo for trie
     """
-    from pyci.corpus import rmrb
-    words = [i for i in rmrb.words()]
+    words = ["ABC", "ABD", "ABCD", "BCD"]
     trie = Trie(words)
-    sent = u"那么看来只能不起名字了。"
+    sent = "ABCEABABCDF"
     offset = 0
     idx = trie.longest_prefix(sent, offset)
     while offset < len(sent):
-        pref = sent[offset:idx]
-        print pref
-        print trie[pref]
-        trie[pref] = 1234
-        print trie[pref]
+        if idx is None:
+            idx = offset + 1
+            pref = sent[offset:idx]
+            print pref, "is not in the trie"
+        else:
+            pref = sent[offset:idx]
+            print pref,
+            print trie[pref],
+            trie[pref] = 1234
+            print trie[pref]
         offset = idx
         idx = trie.longest_prefix(sent, offset)
 
