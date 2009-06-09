@@ -73,7 +73,8 @@ class DZWZCorpusReader(BaseCorpusReader):
 
 def demo():
     """Demo for DZWZCorpusReader"""
-    d = DZWZCorpusReader("/var/Readers_Digest.txt")
+    path = raw_input("PATH: ")
+    d = DZWZCorpusReader(path)
     count = 0
     for word in d.tagged_words():
         print word[0], word[1]
