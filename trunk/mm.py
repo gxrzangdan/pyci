@@ -48,7 +48,7 @@ class FMMSeg(object):
         @param train: (possibly) new words
         """
         for word in train:
-            self._trie[word] = None
+            self._trie[word] = word
 
     def seg(self, sent):
         """Segment a sentence.
@@ -62,7 +62,7 @@ class FMMSeg(object):
         offset = 0
         idx = self._trie.longest_prefix(sent, offset)
         while offset < len(sent):
-            if idx == offset:
+            if idx is None:
                 # the first character is not found in our trie, so
                 # treat it as a whole word
                 idx = offset + 1
@@ -82,8 +82,9 @@ class BMMSeg(FMMSeg):
         @type train: an iterable of words
         @param train: (possibly) new words
         """
-        for word in train:
-            self._trie[word[::-1]] = None
+        # just reverse everything
+        train = [i[::-1] for i in train]
+        FMMSeg.add_words(self, train)
 
 
     def seg(self, sent):
@@ -95,46 +96,49 @@ class BMMSeg(FMMSeg):
         @return: a list of segmented words
         """
         sent = sent[::-1]
-        words = []
-        offset = 0
-        idx = self._trie.longest_prefix(sent, offset)
-        while offset < len(sent):
-            if idx == offset:
-                # the first character is not found in our trie, so
-                # treat it as a whole word
-                idx = offset + 1
-            words.append(sent[offset:idx])
-            offset = idx
-            idx = self._trie.longest_prefix(sent, offset)
+        words = FMMSeg.seg(self, sent)
         words.reverse()
         return [i[::-1] for i in words]
 
 
-def demo_fmm():
-    """Demo for FMM segmentor
+def demo():
+    """Demo for FMM and BMM segmentors
     """
     from pyci.corpus import rmrb
-    words = [i for i in rmrb.words()]
-    seg = FMMSeg(train=words)
-    sent = u"马勒戈壁上的草泥马战胜了河蟹。"
-    print "/".join(seg.seg(sent))
-    seg.add_words([u"草泥马", u"马勒戈壁", u"河蟹"])
-    print "/".join(seg.seg(sent))
 
-
-def demo_bmm():
-    """Demo for BMM segmentor
-    """
-    from pyci.corpus import rmrb
     words = [i for i in rmrb.words()]
-    seg = BMMSeg(train=words)
+    fseg = FMMSeg(train=words)
+    bseg = BMMSeg(train=words)
+
+    print "OOV"
     sent = u"马勒戈壁上的草泥马战胜了河蟹。"
-    print "/".join(seg.seg(sent))
-    seg.add_words([u"草泥马", u"马勒戈壁", u"河蟹"])
-    print "/".join(seg.seg(sent))
+
+    print "FMM",
+    print "/".join(fseg.seg(sent))
+
+    print "BMM",
+    print "/".join(bseg.seg(sent))
+
+    print "Let's add those words"
+    new_words = [u"马勒戈壁", u"草泥马", u"河蟹"]
+    fseg.add_words(new_words)
+    bseg.add_words(new_words)
+
+    print "FMM",
+    print "/".join(fseg.seg(sent))
+
+    print "BMM",
+    print "/".join(bseg.seg(sent))
+
+    print "\nAmbiguity"
+    sent1 = u"结合成分子时"
+
+    print "FMM",
+    print "/".join(fseg.seg(sent1))
+
+    print "BMM",
+    print "/".join(bseg.seg(sent1))
+
 
 if __name__ == "__main__":
-    print "FMM"
-    demo_fmm()
-    print "BMM"
-    demo_bmm()
+    demo()
