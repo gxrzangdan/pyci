@@ -119,6 +119,7 @@ class BaseCorpusReader(object):
             for para in self._loaded_paras:
                 yield para
         else:
+            self._loaded_paras = []
             for para in self.raw_para():
                 self._loaded_paras.append(
                     [self.seg_words(sent)
