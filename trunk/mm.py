@@ -104,9 +104,7 @@ class BMMSeg(FMMSeg):
 def demo():
     """Demo for FMM and BMM segmentors
     """
-    from pyci.corpus import rmrb
-
-    words = [i for i in rmrb.words()]
+    words = [u"戈壁", u"战胜", u"结合", u"合成", u"分子", u"子时", u"壁上的"]
     fseg = FMMSeg(train=words)
     bseg = BMMSeg(train=words)
 
