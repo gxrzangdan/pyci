@@ -86,7 +86,7 @@ class TagSeg(object):
         self.tagger = tagger
 
     def seg(self, sent):
-        return self.tagset.untag(self.tagger.tag(sent), False)
+        return [i for i in self.tagset.untag(self.tagger.tag(sent), False)]
 
 def demo():
     def tagger(word):
@@ -97,6 +97,9 @@ def demo():
             else:
                 res.append((char, 'b'))
         return res
+    class FakeTagger():
+        def tag(self, word):
+            return tagger(word)
 
     itags = ['a']
     otags = ['b']
@@ -118,6 +121,8 @@ def demo():
         print [i for i in tagset.untag(wrong, False)]
     except:
         print "No"
+
+    print TagSeg(tagset, FakeTagger()).seg(''.join(sent))
 
 
 if __name__ == "__main__":
