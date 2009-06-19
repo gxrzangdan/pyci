@@ -11,7 +11,7 @@
 
 """TagSet interface
 """
-__all__ = ["TagError", "TagSet"]
+__all__ = ["TagError", "TagSet", "TagSeg"]
 
 class TagError(Exception):
     pass
@@ -76,6 +76,17 @@ class TagSet(object):
         if word:
             yield word
 
+
+class TagSeg(object):
+    """Take a tagger and a tagset, construct a segmentor
+    """
+
+    def __init__(self, tagset, tagger):
+        self.tagset = tagset
+        self.tagger = tagger
+
+    def seg(self, sent):
+        return self.tagset.untag(self.tagger.tag(sent), False)
 
 def demo():
     def tagger(word):
