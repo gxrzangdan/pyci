@@ -40,11 +40,11 @@ class TagSet(object):
 
         @type sent: a list of words
         @param sent: the sentence to be tagged by tagger
+        @return : generator
         """
-        res = []
         for word in sent:
-            res.extend(self.tagger(word))
-        return res
+            for chartuple in self.tagger(word):
+                yield chartuple
 
     def untag(self, tagged_sent, strict=True):
         """Untag a sentence into a list of words.
@@ -56,13 +56,13 @@ class TagSet(object):
         TagError will be raise if the tag is in neither self.itags nor
         self.otags, otherwise, the character will be treated as if
         it's a single character word
+        @return: generator
         """
-        res = []
         word = ""
         for char, tag in tagged_sent:
             if tag in self.itags:
                 if word:
-                    res.append(word)
+                    yield word
                 word = char
             elif tag in self.otags:
                 word += char
@@ -70,12 +70,11 @@ class TagSet(object):
                 if strict:
                     raise TagError()
                 if word:
-                    res.append(word)
+                    yield word
                 word = ""
-                res.append(char)
+                yield char
         if word:
-            res.append(word)
-        return res
+            yield word
 
 
 def demo():
@@ -95,17 +94,17 @@ def demo():
 
     sent = ['a', 'asdf', 'asjlks', 'ajb', 'asdlk']
     print sent
-    print tagset.tag(sent)
-    print tagset.untag(tagset.tag(sent))
+    print [i for i in tagset.tag(sent)]
+    print [i for i in tagset.untag(tagset.tag(sent))]
 
     wrong = [('a', 'a'), ('b', 'b'), ('c', 'c'), ('d', 'a'), ('e', 'a'), ('f', 'b'), ('g', 'b')]
     try:
-        print tagset.untag(wrong)
+        print [i for i in tagset.untag(wrong)]
     except TagError:
         print "Catched"
 
     try:
-        print tagset.untag(wrong, False)
+        print [i for i in tagset.untag(wrong, False)]
     except:
         print "No"
 
