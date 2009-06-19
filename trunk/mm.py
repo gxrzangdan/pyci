@@ -12,6 +12,7 @@
 """Forward and Backward Maximum Matching word segmentor. Mainly used
 as a baseline segmentor.
 """
+__all__ = ["FMMSeg", "BMMSeg"]
 
 from copy import deepcopy
 
