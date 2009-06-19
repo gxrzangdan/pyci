@@ -14,6 +14,6 @@
 Contains several tag set used for tagging segmentation like CRF.
 """
 
-__all__ = ["TagError", "TagSet"]
+__all__ = ["TagError", "TagSet", "TagSeg"]
 
-from api import TagError, TagSet
+from api import TagError, TagSet, TagSeg
