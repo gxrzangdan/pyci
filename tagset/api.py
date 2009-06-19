@@ -46,10 +46,16 @@ class TagSet(object):
             res.extend(self.tagger(word))
         return res
 
-    def untag(self, tagged_sent):
-        """Untag a sentence
+    def untag(self, tagged_sent, strict=True):
+        """Untag a sentence into a list of words.
 
         @type tagged_sent: a list of (character, tag) tuples
+        @param tagged_sent: the sentence to be untagged
+        @type strict: bool
+        @param strict: whether untagging is strict, if True, a
+        TagError will be raise if the tag is in neither self.itags nor
+        self.otags, otherwise, the character will be treated as if
+        it's a single character word
         """
         res = []
         word = ""
@@ -61,7 +67,14 @@ class TagSet(object):
             elif tag in self.otags:
                 word += char
             else:
-                raise TagError()
+                if strict:
+                    raise TagError()
+                if word:
+                    res.append(word)
+                word = ""
+                res.append(char)
+        if word:
+            res.append(word)
         return res
 
 
@@ -85,11 +98,16 @@ def demo():
     print tagset.tag(sent)
     print tagset.untag(tagset.tag(sent))
 
-    wrong = [('a', 'a'), ('b', 'b'), ('c', 'c')]
+    wrong = [('a', 'a'), ('b', 'b'), ('c', 'c'), ('d', 'a'), ('e', 'a'), ('f', 'b'), ('g', 'b')]
     try:
         print tagset.untag(wrong)
     except TagError:
         print "Catched"
+
+    try:
+        print tagset.untag(wrong, False)
+    except:
+        print "No"
 
 
 if __name__ == "__main__":
