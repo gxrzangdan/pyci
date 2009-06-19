@@ -157,6 +157,8 @@ def demo():
     words = ["ABC", "ABD", "ABCD", "BCD"]
     trie = Trie(words)
     sent = "ABCEABABCDF"
+    print words, sent
+
     offset = 0
     idx = trie.longest_prefix(sent, offset)
     while offset < len(sent):

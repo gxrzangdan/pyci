@@ -11,7 +11,7 @@
 
 """Unigram segmentor using tagging technique
 """
-__all__ = []
+__all__ = ["UnigramTagger"]
 
 from collections import defaultdict
 

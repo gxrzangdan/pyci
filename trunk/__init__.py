@@ -15,11 +15,17 @@
 __version__ = "0.0"
 
 import corpus
+import tagset
+
+
 import mm
 import trie
+import unigram
 
 if __name__ == "__main__":
     print "TRIE"
     trie.demo()
-    print "FMM"
+    print "MM"
     mm.demo()
+    print "Unigram"
+    unigram.demo()
