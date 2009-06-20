@@ -11,7 +11,7 @@
 
 """TagSet templates
 """
-__all__ = []
+__all__ = ['head_tail_tagger', 'head_tail', 'head_tail_single_tagger', 'head_tail_single']
 
 from api import *
 
