@@ -86,7 +86,7 @@ class TagSeg(object):
         self.tagger = tagger
 
     def seg(self, sent):
-        return [i for i in self.tagset.untag(self.tagger.tag(sent), False)]
+        return [i for i in self.tagset.untag(self.tagger(sent), False)]
 
 def demo():
     def tagger(word):
@@ -122,7 +122,7 @@ def demo():
     except:
         print "No"
 
-    print TagSeg(tagset, FakeTagger()).seg(''.join(sent))
+    print TagSeg(tagset, FakeTagger().tag).seg(''.join(sent))
 
 
 if __name__ == "__main__":
