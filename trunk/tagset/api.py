@@ -89,6 +89,8 @@ class TagSeg(object):
         return [i for i in self.tagset.untag(self.tagger(sent), False)]
 
 def demo():
+    print ":::DEMO for tagset/api.py:::"
+
     def tagger(word):
         res = []
         for char in word:

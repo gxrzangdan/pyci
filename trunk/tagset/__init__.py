@@ -16,3 +16,15 @@ Contains several tag set used for tagging segmentation like CRF.
 
 from api import TagError, TagSet, TagSeg
 from template import *
+
+
+def demo():
+    print ":::DEMO for tagset package:::"
+    import api
+    import template
+    api.demo()
+    template.demo()
+
+
+if __name__ == "__main__":
+    demo()
