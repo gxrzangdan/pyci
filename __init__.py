@@ -21,6 +21,7 @@ import tagset
 import mm
 import trie
 import unigram
+import crf
 
 if __name__ == "__main__":
     print "TRIE"
