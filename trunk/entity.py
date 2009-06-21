@@ -13,6 +13,6 @@
 """
 
 # Prepare lists for character classification
-num_list = set([i for i in u"0123456789����������������������һ�����������߰˾�ʮ��ǧ����Ҽ��������½��ƾ�ʰ���Ǫ.%��"])
-date_list = set([i for i in u"��������ʱ����"])
-letter_list = set([i for in u"abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ�������������������������������������£ãģţƣǣȣɣʣˣ̣ͣΣϣУѣңӣԣգ֣ףأ٣�"])
+num_list = set([i for i in u"0123456789０１２３４５６７８９零一二三四五六七八九十百千万亿壹贰叁肆伍陆柒捌玖拾○佰仟.%％"])
+date_list = set([i for i in u"年月日周时分秒"])
+letter_list = set([i for in u"abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZａｂｃｄｅｆｇｈｉｊｋｌｍｎｏｐｑｒｓｔｕｖｗｘｙｚＡＢＣＤＥＦＧＨＩＪＫＬＭＮＯＰＱＲＳＴＵＶＷＸＹＺ"])
