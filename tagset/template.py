@@ -11,7 +11,7 @@
 
 """TagSet templates
 """
-__all__ = ['head_tail_tagger', 'head_tail', 'head_tail_single_tagger', 'head_tail_single']
+__all__ = ["BETagSet", "BESTagSet", "BMESTagSet", "B123MESTagSet"]
 
 from api import *
 
@@ -88,6 +88,8 @@ class B123MESTagSet(TagSet):
 
 
 def demo():
+    print ":::DEMO for tagset/template.py:::"
+
     head_tail = BETagSet()
     head_tail_single = BESTagSet()
     bmes = BMESTagSet()
@@ -107,7 +109,7 @@ def demo():
     ts = BMESTagSet()
     print [i for i in ts.tag(sent)]
     print [i for i in ts.untag(ts.tag(sent))]
-    
+
     ts = B123MESTagSet()
     print [i for i in ts.tag(sent)]
     print [i for i in ts.untag(ts.tag(sent))]
