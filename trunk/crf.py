@@ -9,7 +9,7 @@
 # For license information, see COPYING
 
 
-"""CRF segmentor using existed model
+"""CRF segmentor using existing model
 """
 __all__ = ["CRFTagger"]
 
