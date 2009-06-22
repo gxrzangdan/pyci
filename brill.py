@@ -14,6 +14,18 @@ Brill tagger
 """
 
 from collections import defaultdict
+from pprint import pprint
+
+def my_print(*args):
+    for n, i in enumerate(args):
+        if len(str(i)) < 50:
+            if n != len(args) - 1:
+                print i,
+            else:
+                print i
+        else:
+            pprint(i)
+
 import entity
 
 class BrillRuleTemplate(object):
@@ -27,7 +39,7 @@ class BrillRule(object):
 class BrillTagger(object):
     """A brill tagger"""
 
-    def __init__(self, tagset, initial_tagger, rules=[]):
+    def __init__(self, tagset, initial_tagger, rules=[], trace=0):
         """Construct a brill tagger
 
         @type tagset: a TagSet instance
@@ -42,6 +54,12 @@ class BrillTagger(object):
         self.tagset = tagset
         self.itag = initial_tagger
         self.rules = rules
+        self.trace = trace
+        if trace:
+            my_print("__init__:")
+            my_print("\ttagset:", tagset)
+            my_print("\titag:", initial_tagger)
+            my_print("\trules:", rules)
 
     def tag(self, sent):
         """Tag a sentence
@@ -52,6 +70,9 @@ class BrillTagger(object):
         """
         # we need to ensure that res is a list
         res = [i for i in self.itag(sent)]
+        if self.trace:
+            my_print("tag:")
+            my_print("\tinit:", res)
         # construct the tag-to-index mapping for res
         tag_to_index = defaultdict(set)
         for idx, (character, tag) in enumerate(res):
@@ -61,12 +82,17 @@ class BrillTagger(object):
             # find out all changes
             changes = [i for i in tag_to_index[rule.from_tag]
                        if rule.applies(res, i)]
+            if self.trace:
+                my_print("\tapply rule:", rule)
+                my_print("\t\tchange:", changes)
             # change their tags to rule.to_tag
             for i in changes:
                 res[i] = (res[i][0], rule.to_tag)
                 tag_to_index[rule.from_tag].remove(i)
                 tag_to_index[rule.to_tag].add(i)
         # done
+        if self.trace:
+            my_print("\tfinal:", res)
         return res
 
     def train(self, train, rule_templates, max_rules, min_score):
@@ -82,10 +108,14 @@ class BrillTagger(object):
         @param min_score: mininum improvement score a rule should get
         """
         # `declaration', these are to be used in helper functions
+        trace = self.trace
         res = []
         tag_to_index = defaultdict(set)
         error_idx = defaultdict(set)
         correct_idx = defaultdict(set)
+
+        if trace:
+            my_print("train:")
 
         # helper functions, classes
         class HelperRule(object):
@@ -109,6 +139,23 @@ class BrillTagger(object):
                         # we are wrong but it does not hurt. at least
                         # we are not bringing new errors.
                         pass
+                if trace:
+                    my_print("HelperRule@0x%08x" % id(self))
+                    my_print("\trule:", self.rule)
+                    my_print("\tscore:", self.score)
+                    my_print("\tchanges:", self.changes)
+
+        def generate_rules(idx):
+            if trace:
+                my_print("generate_rules(%d)" % idx)
+            from_tag = res[idx][1]
+            to_tag = train[idx][1]
+            ans = [i.form_rule(from_tag, to_tag, res, idx)
+                   for i in rule_templates]
+            if trace:
+                my_print("generate_rules:")
+                my_print("\t", ans)
+            return ans
 
         def find_possible_rules():
             score_to_rules = defaultdict(set)
@@ -126,6 +173,11 @@ class BrillTagger(object):
                             rule_to_helper[rule] = helper
                         if helper.score >= max_score:
                             max_score = helper.score
+            if trace:
+                my_print("find_possible_rules:")
+                my_print("\tmax_score:", max_score)
+                my_print("\trules:", len(rule_to_helper))
+                my_print("\tscore_to_rules", dict(score_to_rules))
             return score_to_rules, rule_to_helper, max_score
 
         def find_best_rule(score_to_rules, rule_to_helper, max_score):
@@ -161,9 +213,14 @@ class BrillTagger(object):
             # score till it no more has the highest score.
             #
             # d. repeat, someday we will reach stage b.
-            while True:
+            if trace:
+                my_print("find_best_rule:")
+            while max_score >= min_score:
                 # take a max_score rule
                 rule = score_to_rules[max_score].pop()
+                if trace:
+                    my_print("\trule:", rule)
+                    my_print("\tmax_score:", max_score)
                 # and its helper
                 helper = rule_to_helper[rule]
                 # just in case
@@ -177,15 +234,22 @@ class BrillTagger(object):
                     try:
                         idx = helper.correct_iter.next()
                         if rule.applies(res, idx):
+                            if trace:
+                                my_print("\t", rule, "made a mistake @", idx)
                             helper.changes.append(idx)
                             helper.score -= 1
                             score_to_rules[helper.score].add(rule)
+                            break
                     except StopIteration:
-                        return rule, score, helper
+                        if trace:
+                            my_print("\trule:", rule, "score:", helper.score)
+                        return rule, helper.score, helper
                 # find the new max_score
                 while len(score_to_rules[max_score]) == 0:
                     max_score -= 1
-            assert 0, "You shouldn't be here"
+            if trace:
+                my_print("\tI am sorry...")
+            return None, max_score, None
 
         # tag raw sentence with our initial tagger, make sure res is a
         # list
@@ -199,6 +263,11 @@ class BrillTagger(object):
                 correct_idx[tag].add(idx)
             else:
                 error_idx[tag].add(idx)
+        if trace:
+            my_print("train: ", [(res[i][0], train[i][1], res[i][1])
+                              for i in range(len(res))])
+            my_print("error:", dict(error_idx))
+            my_print("correct:", dict(correct_idx))
         # new rule list
         rules = []
         while len(rules) <= max_rules:
@@ -227,36 +296,123 @@ class BrillTagger(object):
                             correct_idx[rule.from_tag].remove(i)
                             error_idx[rule.to_tag].add(i)
                         # finally, change the tag in res
-                        res[i] = (res[i][0], new_rule.to_tag)
-                    rules.append(new_rule)
+                        res[i] = (res[i][0], rule.to_tag)
+                    # add it to rules
+                    rules.append(rule)
+                    if trace:
+                        my_print("train: ", [(res[i][0], train[i][1], res[i][1])
+                                          for i in range(len(res))])
+                        my_print("error:", dict(error_idx))
+                        my_print("correct:", dict(correct_idx))
                 else:
                     break
             else:
                 break
         # done
-        return rules
+        self.rules = rules
 
 
 
 
 def demo():
-    from tagset.template import BETagSet
-    be = BETagSet()
+    from tagset.template import BESTagSet
+    bes = BESTagSet()
 
-    class FakeRule:
-        def __init__(self, from_tag, to_tag):
+    class DummyRule:
+        def __init__(self, from_tag, to_tag, test):
             self.from_tag = from_tag
             self.to_tag = to_tag
-            self.applies = lambda x, y: True
+            self.test = test
+        def __str__(self):
+            return str([self.from_tag, self.to_tag, self.test])
+        def __repr__(self):
+            return repr([self.from_tag, self.to_tag, self.test])
+        def __hash__(self):
+            return hash(str(self))
+        def __cmp__(self, other):
+            if type(self) is type(other):
+                return cmp(str(self), str(other))
+            else:
+                return 1
+        def applies(self, res, idx):
+            if res[idx][1] != self.from_tag:
+                return False
+            for pos, tag in self.test:
+                if idx + pos >= 0 and idx + pos < len(res):
+                    if res[idx + pos][1] != tag:
+                        return False
+            return True
 
-    b_to_e = FakeRule('B', 'E')
-    e_to_b = FakeRule('E', 'B')
+    my_print("Test DummyRule")
+    bb_to_sb = DummyRule('B', 'S', [(1, 'B')])
+    se_to_sb = DummyRule('E', 'B', [(-1, 'S')])
 
-    btag = BrillTagger(be, be.tag, [b_to_e])
-    print btag.tag(['this', 'is', 'a', 'test'])
+    test = [('0', 'S'), ('1', 'E'), ('2', 'B'), ('3', 'B')]
+    ans1 = [False, False, True, True]
+    ans2 = [False, True, False, False]
 
-    btag = BrillTagger(be, be.tag, [b_to_e, e_to_b])
-    print btag.tag(['this', 'is', 'a', 'test'])
+    my_print(test)
+    for i, (c, t) in enumerate(test):
+        my_print(i, (c, t))
+
+        assert bb_to_sb.applies(test,i ) == ans1[i]
+        my_print("\tbb_to_sb:")
+        if bb_to_sb.applies(test, i):
+            my_print("yes")
+        else:
+            my_print("no")
+
+        assert se_to_sb.applies(test, i) == ans2[i]
+        my_print("\tse_to_sb:",)
+        if se_to_sb.applies(test, i):
+            my_print("yes")
+        else:
+            my_print("no")
+
+    class DummyTemplate:
+        def __init__(self, test_pos):
+            self.test_pos = test_pos
+        def form_rule(self, from_tag, to_tag, res, idx):
+            assert res[idx][1] == from_tag
+            test = []
+            for i in self.test_pos:
+                if idx + i >= 0 and idx + i < len(res):
+                    test.append((i, res[idx + i][1]))
+            return DummyRule(from_tag, to_tag, test)
+
+    my_print("\nTest DummyTemplate")
+
+    t1 = DummyTemplate([-1])
+    t2 = DummyTemplate([1])
+
+    r11 = t1.form_rule('S', 'B', test, 0)
+    assert r11.test == []
+    my_print(r11)
+
+    r12 = t1.form_rule('E', 'B', test, 1)
+    assert r12.test == [(-1, 'S')]
+    my_print(r12)
+
+    r21 = t2.form_rule('B', 'S', test, 2)
+    assert r21.test == [(1, 'B')]
+    my_print(r21)
+
+    r22 = t2.form_rule('B', 'E', test, 3)
+    assert r22.test == []
+    my_print(r22)
+
+    my_print("\nTest Brill trainer")
+
+    templates = [t1, t2]
+    train = [i for i in bes.tag(["This", "is", "a", "test", "."])]
+    def stupid_tagger(sent):
+        return [(i, "S") for i in sent]
+
+    brill = BrillTagger(bes, stupid_tagger, trace=False)
+    brill.train(train, templates, 20, 0)
+    my_print(brill.rules)
+    my_print(brill.tag("This is a test."))
+
 
 
 if __name__ == "__main__":
