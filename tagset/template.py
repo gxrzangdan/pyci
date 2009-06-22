@@ -23,12 +23,12 @@ class BETagSet(TagSet):
         def tagger(word):
             res = []
             if word:
-                res.append((word[0], 'H'))
+                res.append((word[0], 'B'))
             for i in word[1:]:
-                res.append((i, 'T'))
+                res.append((i, 'E'))
             return res
 
-        TagSet.__init__(self, ['H'], ['T'], tagger)
+        TagSet.__init__(self, ['B'], ['E'], tagger)
 
 
 class BESTagSet(TagSet):
@@ -40,11 +40,11 @@ class BESTagSet(TagSet):
             if len(word) == 1:
                 return [(word, 'S')]
             elif len(word) > 1:
-                return [(word[0], 'H')] + [(i, 'T') for i in word[1:]]
+                return [(word[0], 'B')] + [(i, 'E') for i in word[1:]]
             else:
                 return []
 
-        TagSet.__init__(self, ['H', 'S'], ['T'], tagger)
+        TagSet.__init__(self, ['B', 'S'], ['E'], tagger)
 
 
 class BMESTagSet(TagSet):
