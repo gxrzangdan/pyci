@@ -12,9 +12,12 @@
 """
 Brill tagger
 """
+__all__ = ["BrillRuleTemplate", "BrillRule", "BrillTagger", "AtomicPredicate"]
 
 from collections import defaultdict
 from pprint import pprint
+
+from entity import char_class, C_NUM, C_DATE, C_LETTER, C_OTHER
 
 def my_print(*args):
     for n, i in enumerate(args):
@@ -26,13 +29,115 @@ def my_print(*args):
         else:
             pprint(i)
 
-import entity
 
-class BrillRuleTemplate(object):
-    pass
+class AtomicPredicate(object):
+    """An atomic predicate is a predicate tests
+    whether:
+
+      * given offset has given tag or not
+      * given offset is given character or not
+      * given offset is in given character class or not
+
+      An AtomicPredicate is comparable -- it's equal to any object
+      having the identical repr().
+    """
+
+    def __init__(self, pred_offset, pred_type, pred_value, pred_not=False):
+        """Construct an atomic predicate.
+
+        @type pred_offset: integer
+        @param pred_offset: the offset of the tuple to be tested
+
+        @type pred_type: one of 'T', 'C', 'E'
+        @param pred_type: test type, 'T' - tag; 'C' - character; 'E' -
+        entity
+
+        @type pred_value: depends on pred_type
+        @param pred_value: test value
+
+        @type pred_not: bool
+        @param pred_not: whether to inverse the result
+        """
+        assert pred_type in ['T', 'C', 'E'], "Invalid pred_type"
+        self.test_slot = (pred_offset, pred_type, pred_value, pred_not)
+
+    def __str__(self):
+        return "AtomicPredicate: " + str(self.test_slot)
+
+    def __repr__(self):
+        return "AtomicPredicate: " + repr(self.test_slot)
+
+    def __cmp__(self, other):
+        return cmp(repr(self), repr(other))
+
+    def test(self, context, idx):
+        o, t, v, n = self.test_slot
+        res = True
+        if idx + o >= 0 and idx + o < len(context):
+            char, tag = context[idx + o]
+            if t == "T":
+                res = tag == v
+            elif t == "C":
+                res = char == v
+            else:
+                res = char_class(char) == v
+        if n:
+            res = not res
+        return res
 
 
 class BrillRule(object):
+    """A rule for Brill tagger.
+
+    It uses a combination of [[AtomicPrediate]] to test whether the
+    rule is applicable.
+
+    A BrillRule is hashable and comparable. It's equal to any object
+    having the identical repr().
+    """
+
+    def __init__(self, from_tag, to_tag, test):
+        """Construct a brill rule.
+
+        @type from_tag: a tag from some tagset
+        @param from_tag: from-tag of the rule
+
+        @type to_tag: a tag from some tagset
+        @param to_tag: to-tag of the rule
+
+        @type test: a list of list of AtomicPredicates
+        @param test: tests to trigger the rule, the predicates are
+        tested in the following way:
+
+          1. For each sublist i in test, it's true iff any of its
+          element AtomicPredicate asserts true.
+
+          2. For the whole list, it's true iff all the sublists are
+          true.
+        """
+        self.from_tag = from_tag
+        self.to_tag = to_tag
+        self.test = test
+
+    def applies(self, context, idx):
+        return all([any([ap.test(context, idx) for ap in clause])
+                    for clause in self.test])
+
+    def __str__(self):
+        return "BrillRule: " + str([self.from_tag, self.to_tag, self.test])
+
+    def __repr__(self):
+        return "BrillRule: " + repr([self.from_tag, self.to_tag, self.test])
+
+    def __cmp__(self, other):
+        return cmp(repr(self), repr(other))
+
+    def __hash__(self):
+        return hash(repr(self))
+
+
+class BrillRuleTemplate(object):
+    # TODO
     pass
 
 
@@ -44,10 +149,12 @@ class BrillTagger(object):
 
         @type tagset: a TagSet instance
         @param tagset: the tag set we are using
+
         @type initial_tagger: a function which takes a unicode string
         and returns tuples of (character, tag)
         @param initial_tagger: the tagger that produces the coarse
         tagging, it should match the tagset given
+
         @type rules: orderd list of BrillRules
         @param rules: rules to apply after tagging with initial_tagger
         """
@@ -100,10 +207,13 @@ class BrillTagger(object):
 
         @type train: a list of (character, tag) tuples
         @param train: the training corpus
+
         @type rule_templates: a list of BrillRuleTemplate
         @param rule_templates: the rule templates to be used
+
         @type max_rules: integer
         @param max_rules: maximum number of rules to be used
+
         @type min_score: integer
         @param min_score: mininum improvement score a rule should get
         """
@@ -413,6 +523,52 @@ def demo():
     my_print(brill.rules)
     my_print(brill.tag("This is a test."))
 
+    my_print("\nTest AtomicPredicate")
+
+    ap0 = AtomicPredicate(0, 'T', 'B')
+    ap1 = AtomicPredicate(0, 'T', 'B')
+    ap2 = AtomicPredicate(1, 'C', '0', True)
+    ap3 = AtomicPredicate(-1, 'E', C_NUM)
+
+    assert ap1.test([('1', 'B')], 0) is True
+    assert ap1.test([('1', 'C')], 0) is False
+
+    assert ap2.test([('1', 'B'), ('2', 'C')], 0) is True
+    assert ap2.test([('1', 'B')], 0) is False
+    assert ap2.test([('1', 'B'), ('0', 'C')], 0) is False
+
+    assert ap3.test([('1', 'B')], 1) is True
+    assert ap3.test([('L', 'B')], 1) is False
+
+    assert ap0 == ap1
+    assert ap0 != ap2
+
+    my_print("pass")
+
+    my_print("\nTest BrillRule")
+
+    test = [("T", "S"), ("1", "E"), ("0", "B")]
+
+    r0 = BrillRule(None, None, [[ap1], [ap2], [ap3]])
+    r1 = BrillRule(None, None, [[ap1, ap2], [ap3]])
+    r2 = BrillRule(None, None, [[ap1], [ap2, ap3]])
+    r3 = BrillRule(None, None, [[ap1, ap2], [ap3]])
+
+    assert r1 == r3
+    assert r1 != r2
+
+    d = {r0: 0, r1: 1, r2:2}
+    assert d[r3] == d[r1]
+    s = set([r0, r1, r2, r3])
+    assert len(s) == 3
+
+    print test
+    for i in range(len(test)):
+        print test[i]
+        print ap1.test(test, i), ap2.test(test, i), ap3.test(test, i)
+        print r0.applies(test, i)
+        print r1.applies(test, i)
+        print r2.applies(test, i)
 
 
 if __name__ == "__main__":
