@@ -344,6 +344,7 @@ class BrillTagger(object):
         error_idx = defaultdict(set)
         correct_idx = defaultdict(set)
         train = [i for i in self.tagset.tag(train)]
+        rules_set = set()
 
         if verbose:
             print "Training corpus loaded, %d characters" % len(train)
@@ -399,9 +400,15 @@ class BrillTagger(object):
             rule_to_helper = {} # one rule <=> one helper
             max_score = 0
             for wrong_tag in error_idx:
+                if verbose:
+                    print "Tag:", wrong_tag,
+                    count = 1
                 for idx in error_idx[wrong_tag]:
+                    if verbose:
+                        print "\rTag:", wrong_tag, "%3.0f%%" % (count * 100.0 / len(error_idx[wrong_tag])),
+                        count += 1
                     for rule in generate_rules(idx):
-                        if rule in rule_to_helper:
+                        if rule in rule_to_helper or rule in rules_set:
                             # already have that rule, skipping
                             continue
                         helper = HelperRule(rule)
@@ -410,6 +417,8 @@ class BrillTagger(object):
                             rule_to_helper[rule] = helper
                         if helper.score >= max_score:
                             max_score = helper.score
+                if verbose:
+                    print ""
             if trace:
                 my_print("find_possible_rules:")
                 my_print("\tmax_score:", max_score)
@@ -453,6 +462,8 @@ class BrillTagger(object):
             if trace:
                 my_print("find_best_rule:")
             while max_score >= min_score:
+                if verbose:
+                    print "\rCurrently best score:", max_score,
                 # take a max_score rule
                 rule = score_to_rules[max_score].pop()
                 if trace:
@@ -480,12 +491,16 @@ class BrillTagger(object):
                     except StopIteration:
                         if trace:
                             my_print("\n\trule:", rule, "score:", helper.score)
+                        if verbose:
+                            print ""
                         return rule, helper.score, helper
                 # find the new max_score
                 while len(score_to_rules[max_score]) == 0:
                     max_score -= 1
             if trace:
                 my_print("\tI am sorry...")
+            if verbose:
+                print ""
             return None, max_score, None
 
         # tag raw sentence with our initial tagger, make sure res is a
@@ -511,8 +526,12 @@ class BrillTagger(object):
         # new rule list
         rules = []
         while len(rules) <= max_rules:
+            if verbose:
+                print "Looking for possible rules"
             score_to_rules, rule_to_helper, max_score = find_possible_rules()
             if max_score >= min_score:
+                if verbose:
+                    print "Found %d possible rules" % len(rule_to_helper)
                 rule, score, helper = find_best_rule(score_to_rules,
                                                      rule_to_helper,
                                                      max_score)
@@ -539,6 +558,7 @@ class BrillTagger(object):
                         res[i] = (res[i][0], rule.to_tag)
                     # add it to rules
                     rules.append(rule)
+                    rules_set.add(rule)
                     if trace:
                         my_print("after commit train: ",
                                  [(res[i][0], train[i][1], res[i][1])
@@ -552,6 +572,8 @@ class BrillTagger(object):
                                score)
 
                 else:
+                    if verbose:
+                        print "No rule has enough score"
                     break
             else:
                 break
