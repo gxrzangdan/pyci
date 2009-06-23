@@ -41,6 +41,9 @@ class AtomicPredicate(object):
       An AtomicPredicate is comparable -- it's equal to any object
       having the identical repr().
     """
+    T_TAG = "TAG"
+    T_CLASS = "CLASS"
+    T_CHAR = "CHAR"
 
     def __init__(self, pred_offset, pred_type, pred_value, pred_not=False):
         """Construct an atomic predicate.
@@ -48,9 +51,12 @@ class AtomicPredicate(object):
         @type pred_offset: integer
         @param pred_offset: the offset of the tuple to be tested
 
-        @type pred_type: one of 'T', 'C', 'E'
-        @param pred_type: test type, 'T' - tag; 'C' - character; 'E' -
-        entity
+        @type pred_type: one of T_TAG, T_CLASS, T_CHAR
+        @param pred_type: test type
+
+          * T_TAG - tag;
+          * T_CLASS - character;
+          * T_CHAR - entity.
 
         @type pred_value: depends on pred_type
         @param pred_value: test value
@@ -58,26 +64,46 @@ class AtomicPredicate(object):
         @type pred_not: bool
         @param pred_not: whether to inverse the result
         """
-        assert pred_type in ['T', 'C', 'E'], "Invalid pred_type"
-        self.test_slot = (pred_offset, pred_type, pred_value, pred_not)
+        assert pred_type in [self.T_TAG, self.T_CLASS, self.T_CHAR], \
+               "Invalid pred_type"
+        self._test = (pred_offset, pred_type, pred_value, pred_not)
+
+    def offset(self):
+        return self._test[0]
+
+    def type_value(self):
+        return (self._test[1], self._test[2])
+
+    def inverse(self):
+        return self._test[3]
 
     def __str__(self):
-        return "AtomicPredicate: " + str(self.test_slot)
+        return "AtomicPredicate: " + str(self._test)
 
     def __repr__(self):
-        return "AtomicPredicate: " + repr(self.test_slot)
+        return "AtomicPredicate: " + repr(self._test)
 
     def __cmp__(self, other):
         return cmp(repr(self), repr(other))
 
     def test(self, context, idx):
-        o, t, v, n = self.test_slot
+        """Test the predicate under context.
+
+        @type context: a list of (character, tag) tuples.
+        @param context: the context
+
+        @type idx: integer
+        @param idx: the index to the context
+
+        @return: the value of the predicate
+        """
+        o, t, v, n = self._test
         res = True
         if idx + o >= 0 and idx + o < len(context):
             char, tag = context[idx + o]
-            if t == "T":
+            if t == self.T_TAG:
                 res = tag == v
-            elif t == "C":
+            elif t == self.T_CHAR:
                 res = char == v
             else:
                 res = char_class(char) == v
@@ -89,7 +115,7 @@ class AtomicPredicate(object):
 class BrillRule(object):
     """A rule for Brill tagger.
 
-    It uses a combination of [[AtomicPrediate]] to test whether the
+    It uses a combination of [[AtomicPredicate]] to test whether the
     rule is applicable.
 
     A BrillRule is hashable and comparable. It's equal to any object
@@ -105,29 +131,38 @@ class BrillRule(object):
         @type to_tag: a tag from some tagset
         @param to_tag: to-tag of the rule
 
-        @type test: a list of list of AtomicPredicates
+        @type test: an iterable of iterable of AtomicPredicates
         @param test: tests to trigger the rule, the predicates are
         tested in the following way:
 
-          1. For each sublist i in test, it's true iff any of its
-          element AtomicPredicate asserts true.
+          1. For each sublist i in test, i is true iff any of its
+          elemental AtomicPredicate asserts true.
 
           2. For the whole list, it's true iff all the sublists are
           true.
         """
         self.from_tag = from_tag
         self.to_tag = to_tag
-        self.test = test
+        self._test = sorted(test) # so that we can discover more
+                                  # identical rules
 
     def applies(self, context, idx):
+        """Check whether the rule applies to the context
+
+        @type context: a list of (character, tag) tuples.
+        @param context: the context.
+
+        @type idx: integer.
+        @param idx: the index to the context.
+        """
         return all([any([ap.test(context, idx) for ap in clause])
-                    for clause in self.test])
+                    for clause in self._test])
 
     def __str__(self):
-        return "BrillRule: " + str([self.from_tag, self.to_tag, self.test])
+        return "BrillRule: " + str([self.from_tag, self.to_tag, self._test])
 
     def __repr__(self):
-        return "BrillRule: " + repr([self.from_tag, self.to_tag, self.test])
+        return "BrillRule: " + repr([self.from_tag, self.to_tag, self._test])
 
     def __cmp__(self, other):
         return cmp(repr(self), repr(other))
@@ -137,8 +172,66 @@ class BrillRule(object):
 
 
 class BrillRuleTemplate(object):
-    # TODO
-    pass
+    """Template for generating Brill rules.
+
+    With given from-tag and to-tag, the form_rule method will return a
+    BrillRule with corresponding test.
+    """
+
+    def __init__(self, test):
+        """Construct a template for generating Brill rules.
+
+        @type test: a list of list of (offset, type)
+
+        @param test: tests used to construct rules
+        """
+        # TODO: how do we support pred_not = False?
+        self._test = test
+
+    def form_rule(self, from_tag, to_tag, res, idx):
+        """Form a BrillRule with given from-tag and to-tag which
+        corrects the error in res[idx].
+
+        @type from_tag: a tag from some tagset.
+        @param from_tag: from-tag, must match the tag in res[idx].
+
+        @type to_tag: a tag from some tagset.
+        @param to_tag: to-tag, must be different from from_tag.
+
+        @type res: a list of (character, tag) tuples.
+        @param res: the currently tagged result(context).
+
+        @type idx: integer.
+        @param idx: the index to the res.
+        """
+        def value(context, idx, ptype):
+            if ptype == AtomicPredicate.T_TAG:
+                return context[idx][1]
+            elif ptype == AtomicPredicate.T_CHAR:
+                return context[idx][0]
+            else:
+                return char_class(context[idx][0])
+        # first ensure the tag integrity
+        assert from_tag != to_tag, "from_tag == to_tag"
+        assert from_tag == res[idx][1], \
+               "from_tag and the tag in context does not match"
+        # then test we can reach all the offsets in self._test
+        for clause in self._test:
+            for offset, ptype in clause:
+                if idx + offset < 0 or \
+                   idx + offset >= len(res):
+                    # the offset of ap cannot be reached, no rule will
+                    # be formed.
+                    return None
+        test = []
+        for clause in self._test:
+            new_clause = []
+            for offset, ptype in clause:
+                new_clause.append(AtomicPredicate(offset, ptype,
+                                                  value(res, idx + offset,
+                                                        ptype)))
+            test.append(new_clause)
+        return BrillRule(from_tag, to_tag, test)
 
 
 class BrillTagger(object):
@@ -189,14 +282,15 @@ class BrillTagger(object):
             # find out all changes
             changes = [i for i in tag_to_index[rule.from_tag]
                        if rule.applies(res, i)]
-            if self.trace:
-                my_print("\tapply rule:", rule)
-                my_print("\t\tchange:", changes)
             # change their tags to rule.to_tag
             for i in changes:
                 res[i] = (res[i][0], rule.to_tag)
                 tag_to_index[rule.from_tag].remove(i)
                 tag_to_index[rule.to_tag].add(i)
+            if self.trace:
+                my_print("\tapply rule:", rule)
+                my_print("\t\tchange:", changes)
+                my_print("\t\t", res)
         # done
         if self.trace:
             my_print("\tfinal:", res)
@@ -233,7 +327,7 @@ class BrillTagger(object):
             find_possible_rules and find_best_rule.
             """
 
-            def __init__(self, rule):
+            def __init__(self, rule, trace=False):
                 self.rule = rule
                 self.correct_iter = iter(correct_idx[rule.from_tag])
                 self.score = 0
@@ -255,15 +349,17 @@ class BrillTagger(object):
                     my_print("\tscore:", self.score)
                     my_print("\tchanges:", self.changes)
 
-        def generate_rules(idx):
+        def generate_rules(idx, trace=False):
             if trace:
                 my_print("generate_rules(%d)" % idx)
             from_tag = res[idx][1]
             to_tag = train[idx][1]
-            ans = [i.form_rule(from_tag, to_tag, res, idx)
-                   for i in rule_templates]
+            ans = [i for i in
+                   [i.form_rule(from_tag, to_tag, res, idx)
+                    for i in rule_templates]
+                   if i]
             if trace:
-                my_print("generate_rules:")
+                my_print("generate_rules: %d rules" % len(ans))
                 my_print("\t", ans)
             return ans
 
@@ -287,7 +383,7 @@ class BrillTagger(object):
                 my_print("find_possible_rules:")
                 my_print("\tmax_score:", max_score)
                 my_print("\trules:", len(rule_to_helper))
-                my_print("\tscore_to_rules", dict(score_to_rules))
+                # my_print("\tscore_to_rules", dict(score_to_rules))
             return score_to_rules, rule_to_helper, max_score
 
         def find_best_rule(score_to_rules, rule_to_helper, max_score):
@@ -345,14 +441,14 @@ class BrillTagger(object):
                         idx = helper.correct_iter.next()
                         if rule.applies(res, idx):
                             if trace:
-                                my_print("\t", rule, "made a mistake @", idx)
+                                my_print("\tmade a mistake @", idx)
                             helper.changes.append(idx)
                             helper.score -= 1
                             score_to_rules[helper.score].add(rule)
                             break
                     except StopIteration:
                         if trace:
-                            my_print("\trule:", rule, "score:", helper.score)
+                            my_print("\n\trule:", rule, "score:", helper.score)
                         return rule, helper.score, helper
                 # find the new max_score
                 while len(score_to_rules[max_score]) == 0:
@@ -410,8 +506,9 @@ class BrillTagger(object):
                     # add it to rules
                     rules.append(rule)
                     if trace:
-                        my_print("train: ", [(res[i][0], train[i][1], res[i][1])
-                                          for i in range(len(res))])
+                        my_print("after commit train: ",
+                                 [(res[i][0], train[i][1], res[i][1])
+                                  for i in range(len(res))])
                         my_print("error:", dict(error_idx))
                         my_print("correct:", dict(correct_idx))
                 else:
@@ -525,10 +622,10 @@ def demo():
 
     my_print("\nTest AtomicPredicate")
 
-    ap0 = AtomicPredicate(0, 'T', 'B')
-    ap1 = AtomicPredicate(0, 'T', 'B')
-    ap2 = AtomicPredicate(1, 'C', '0', True)
-    ap3 = AtomicPredicate(-1, 'E', C_NUM)
+    ap0 = AtomicPredicate(0, AtomicPredicate.T_TAG, 'B')
+    ap1 = AtomicPredicate(0, AtomicPredicate.T_TAG, 'B')
+    ap2 = AtomicPredicate(1, AtomicPredicate.T_CHAR, '0', True)
+    ap3 = AtomicPredicate(-1, AtomicPredicate.T_CLASS, C_NUM)
 
     assert ap1.test([('1', 'B')], 0) is True
     assert ap1.test([('1', 'C')], 0) is False
@@ -543,7 +640,7 @@ def demo():
     assert ap0 == ap1
     assert ap0 != ap2
 
-    my_print("pass")
+    my_print("OK")
 
     my_print("\nTest BrillRule")
 
@@ -569,6 +666,43 @@ def demo():
         print r0.applies(test, i)
         print r1.applies(test, i)
         print r2.applies(test, i)
+
+    my_print("\nTest BrillRuleTemplate")
+
+    train = [('T', 'B'), ('h', 'E'), ('i', 'E'), ('s', 'E'), (' ', 'S'), ('i', 'B'), ('s', 'E'), (' ', 'S'), ('a', 'S'), (' ', 'S'), ('t', 'B'), ('e', 'E'), ('s', 'E'), ('t', 'E'), ('.', 'S')]
+
+    back1tag = BrillRuleTemplate([[(-1, AtomicPredicate.T_TAG)]])
+    ahead1tag = BrillRuleTemplate([[(1, AtomicPredicate.T_TAG)]])
+    back1class_ahead1char = BrillRuleTemplate([[(-1, AtomicPredicate.T_CLASS)], [(1, AtomicPredicate.T_CHAR)]])
+
+    for i, (char, tag) in enumerate(train):
+        my_print(i, (char, tag))
+        my_print(back1tag.form_rule(tag, 'X', train, i))
+        my_print(ahead1tag.form_rule(tag, 'X', train, i))
+        my_print(back1class_ahead1char.form_rule(tag, 'X', train, i))
+        print ""
+
+    my_print("\nTest Everything")
+
+    test = "This is not a test."
+
+    brill = BrillTagger(bes, stupid_tagger, trace=True)
+    brill.train(train, [
+        # unigram
+        BrillRuleTemplate([[(-1, AtomicPredicate.T_TAG)]]),
+        BrillRuleTemplate([[(1, AtomicPredicate.T_TAG)]]),
+        BrillRuleTemplate([[(-1, AtomicPredicate.T_CHAR)]]),
+        BrillRuleTemplate([[(1, AtomicPredicate.T_CHAR)]]),
+        # bigram
+        BrillRuleTemplate([[(-1, AtomicPredicate.T_TAG)],
+                           [(1, AtomicPredicate.T_TAG)]]),
+        BrillRuleTemplate([[(-1, AtomicPredicate.T_CHAR)],
+                           [(1, AtomicPredicate.T_CHAR)]])],
+                20, 1)
+    print brill.rules
+    tagged_test = brill.tag(test)
+    print [i for i in bes.untag(tagged_test)]
+
 
 
 if __name__ == "__main__":
