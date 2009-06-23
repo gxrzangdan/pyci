@@ -14,19 +14,24 @@
 
 __version__ = "0.0"
 
+# packages
 import corpus
 import tagset
 
 
+# modules
 import mm
 import trie
 import unigram
 import crf
+import brill
 
 if __name__ == "__main__":
-    print "TRIE"
+    print "=" * 20 + "TRIE" + "=" * 20
     trie.demo()
-    print "MM"
+    print "=" * 20 + "MM" + "=" * 20
     mm.demo()
-    print "Unigram"
+    print "=" * 20 + "Unigram" + "=" * 20
     unigram.demo()
+    print "=" * 20 + "Brill" + "=" * 20
+    brill.demo()

@@ -521,168 +521,172 @@ class BrillTagger(object):
 
 
 
-def demo():
+def demo(test=False):
     from tagset.template import BESTagSet
     bes = BESTagSet()
 
-    class DummyRule:
-        def __init__(self, from_tag, to_tag, test):
-            self.from_tag = from_tag
-            self.to_tag = to_tag
-            self.test = test
-        def __str__(self):
-            return str([self.from_tag, self.to_tag, self.test])
-        def __repr__(self):
-            return repr([self.from_tag, self.to_tag, self.test])
-        def __hash__(self):
-            return hash(str(self))
-        def __cmp__(self, other):
-            if type(self) is type(other):
-                return cmp(str(self), str(other))
+    if test:
+        class DummyRule:
+            def __init__(self, from_tag, to_tag, test):
+                self.from_tag = from_tag
+                self.to_tag = to_tag
+                self.test = test
+            def __str__(self):
+                return str([self.from_tag, self.to_tag, self.test])
+            def __repr__(self):
+                return repr([self.from_tag, self.to_tag, self.test])
+            def __hash__(self):
+                return hash(str(self))
+            def __cmp__(self, other):
+                if type(self) is type(other):
+                    return cmp(str(self), str(other))
+                else:
+                    return 1
+            def applies(self, res, idx):
+                if res[idx][1] != self.from_tag:
+                    return False
+                for pos, tag in self.test:
+                    if idx + pos >= 0 and idx + pos < len(res):
+                        if res[idx + pos][1] != tag:
+                            return False
+                return True
+
+        my_print("Test DummyRule")
+        bb_to_sb = DummyRule('B', 'S', [(1, 'B')])
+        se_to_sb = DummyRule('E', 'B', [(-1, 'S')])
+
+        test = [('0', 'S'), ('1', 'E'), ('2', 'B'), ('3', 'B')]
+        ans1 = [False, False, True, True]
+        ans2 = [False, True, False, False]
+
+        my_print(test)
+        for i, (c, t) in enumerate(test):
+            my_print(i, (c, t))
+
+            assert bb_to_sb.applies(test,i ) == ans1[i]
+            my_print("\tbb_to_sb:")
+            if bb_to_sb.applies(test, i):
+                my_print("yes")
             else:
-                return 1
-        def applies(self, res, idx):
-            if res[idx][1] != self.from_tag:
-                return False
-            for pos, tag in self.test:
-                if idx + pos >= 0 and idx + pos < len(res):
-                    if res[idx + pos][1] != tag:
-                        return False
-            return True
+                my_print("no")
 
-    my_print("Test DummyRule")
-    bb_to_sb = DummyRule('B', 'S', [(1, 'B')])
-    se_to_sb = DummyRule('E', 'B', [(-1, 'S')])
+            assert se_to_sb.applies(test, i) == ans2[i]
+            my_print("\tse_to_sb:",)
+            if se_to_sb.applies(test, i):
+                my_print("yes")
+            else:
+                my_print("no")
 
-    test = [('0', 'S'), ('1', 'E'), ('2', 'B'), ('3', 'B')]
-    ans1 = [False, False, True, True]
-    ans2 = [False, True, False, False]
+        class DummyTemplate:
+            def __init__(self, test_pos):
+                self.test_pos = test_pos
+            def form_rule(self, from_tag, to_tag, res, idx):
+                assert res[idx][1] == from_tag
+                test = []
+                for i in self.test_pos:
+                    if idx + i >= 0 and idx + i < len(res):
+                        test.append((i, res[idx + i][1]))
+                return DummyRule(from_tag, to_tag, test)
 
-    my_print(test)
-    for i, (c, t) in enumerate(test):
-        my_print(i, (c, t))
+        my_print("\nTest DummyTemplate")
 
-        assert bb_to_sb.applies(test,i ) == ans1[i]
-        my_print("\tbb_to_sb:")
-        if bb_to_sb.applies(test, i):
-            my_print("yes")
-        else:
-            my_print("no")
+        t1 = DummyTemplate([-1])
+        t2 = DummyTemplate([1])
 
-        assert se_to_sb.applies(test, i) == ans2[i]
-        my_print("\tse_to_sb:",)
-        if se_to_sb.applies(test, i):
-            my_print("yes")
-        else:
-            my_print("no")
+        r11 = t1.form_rule('S', 'B', test, 0)
+        assert r11.test == []
+        my_print(r11)
 
-    class DummyTemplate:
-        def __init__(self, test_pos):
-            self.test_pos = test_pos
-        def form_rule(self, from_tag, to_tag, res, idx):
-            assert res[idx][1] == from_tag
-            test = []
-            for i in self.test_pos:
-                if idx + i >= 0 and idx + i < len(res):
-                    test.append((i, res[idx + i][1]))
-            return DummyRule(from_tag, to_tag, test)
+        r12 = t1.form_rule('E', 'B', test, 1)
+        assert r12.test == [(-1, 'S')]
+        my_print(r12)
 
-    my_print("\nTest DummyTemplate")
+        r21 = t2.form_rule('B', 'S', test, 2)
+        assert r21.test == [(1, 'B')]
+        my_print(r21)
 
-    t1 = DummyTemplate([-1])
-    t2 = DummyTemplate([1])
+        r22 = t2.form_rule('B', 'E', test, 3)
+        assert r22.test == []
+        my_print(r22)
 
-    r11 = t1.form_rule('S', 'B', test, 0)
-    assert r11.test == []
-    my_print(r11)
+        my_print("\nTest Brill trainer")
 
-    r12 = t1.form_rule('E', 'B', test, 1)
-    assert r12.test == [(-1, 'S')]
-    my_print(r12)
+        templates = [t1, t2]
+        train = [i for i in bes.tag(["This", "is", "a", "test", "."])]
 
-    r21 = t2.form_rule('B', 'S', test, 2)
-    assert r21.test == [(1, 'B')]
-    my_print(r21)
-
-    r22 = t2.form_rule('B', 'E', test, 3)
-    assert r22.test == []
-    my_print(r22)
-
-    my_print("\nTest Brill trainer")
-
-    templates = [t1, t2]
-    train = [i for i in bes.tag(["This", "is", "a", "test", "."])]
     def stupid_tagger(sent):
         return [(i, "S") for i in sent]
 
-    brill = BrillTagger(bes, stupid_tagger, trace=False)
-    brill.train(train, templates, 20, 0)
-    my_print(brill.rules)
-    my_print(brill.tag("This is a test."))
+    if test:
+        brill = BrillTagger(bes, stupid_tagger, trace=False)
+        brill.train(train, templates, 20, 0)
+        my_print(brill.rules)
+        my_print(brill.tag("This is a test."))
 
-    my_print("\nTest AtomicPredicate")
+        my_print("\nTest AtomicPredicate")
 
-    ap0 = AtomicPredicate(0, AtomicPredicate.T_TAG, 'B')
-    ap1 = AtomicPredicate(0, AtomicPredicate.T_TAG, 'B')
-    ap2 = AtomicPredicate(1, AtomicPredicate.T_CHAR, '0', True)
-    ap3 = AtomicPredicate(-1, AtomicPredicate.T_CLASS, C_NUM)
+        ap0 = AtomicPredicate(0, AtomicPredicate.T_TAG, 'B')
+        ap1 = AtomicPredicate(0, AtomicPredicate.T_TAG, 'B')
+        ap2 = AtomicPredicate(1, AtomicPredicate.T_CHAR, '0', True)
+        ap3 = AtomicPredicate(-1, AtomicPredicate.T_CLASS, C_NUM)
 
-    assert ap1.test([('1', 'B')], 0) is True
-    assert ap1.test([('1', 'C')], 0) is False
+        assert ap1.test([('1', 'B')], 0) is True
+        assert ap1.test([('1', 'C')], 0) is False
 
-    assert ap2.test([('1', 'B'), ('2', 'C')], 0) is True
-    assert ap2.test([('1', 'B')], 0) is False
-    assert ap2.test([('1', 'B'), ('0', 'C')], 0) is False
+        assert ap2.test([('1', 'B'), ('2', 'C')], 0) is True
+        assert ap2.test([('1', 'B')], 0) is False
+        assert ap2.test([('1', 'B'), ('0', 'C')], 0) is False
 
-    assert ap3.test([('1', 'B')], 1) is True
-    assert ap3.test([('L', 'B')], 1) is False
+        assert ap3.test([('1', 'B')], 1) is True
+        assert ap3.test([('L', 'B')], 1) is False
 
-    assert ap0 == ap1
-    assert ap0 != ap2
+        assert ap0 == ap1
+        assert ap0 != ap2
 
-    my_print("OK")
+        my_print("OK")
 
-    my_print("\nTest BrillRule")
+        my_print("\nTest BrillRule")
 
-    test = [("T", "S"), ("1", "E"), ("0", "B")]
+        test = [("T", "S"), ("1", "E"), ("0", "B")]
 
-    r0 = BrillRule(None, None, [[ap1], [ap2], [ap3]])
-    r1 = BrillRule(None, None, [[ap1, ap2], [ap3]])
-    r2 = BrillRule(None, None, [[ap1], [ap2, ap3]])
-    r3 = BrillRule(None, None, [[ap1, ap2], [ap3]])
+        r0 = BrillRule(None, None, [[ap1], [ap2], [ap3]])
+        r1 = BrillRule(None, None, [[ap1, ap2], [ap3]])
+        r2 = BrillRule(None, None, [[ap1], [ap2, ap3]])
+        r3 = BrillRule(None, None, [[ap1, ap2], [ap3]])
 
-    assert r1 == r3
-    assert r1 != r2
+        assert r1 == r3
+        assert r1 != r2
 
-    d = {r0: 0, r1: 1, r2:2}
-    assert d[r3] == d[r1]
-    s = set([r0, r1, r2, r3])
-    assert len(s) == 3
+        d = {r0: 0, r1: 1, r2:2}
+        assert d[r3] == d[r1]
+        s = set([r0, r1, r2, r3])
+        assert len(s) == 3
 
-    print test
-    for i in range(len(test)):
-        print test[i]
-        print ap1.test(test, i), ap2.test(test, i), ap3.test(test, i)
-        print r0.applies(test, i)
-        print r1.applies(test, i)
-        print r2.applies(test, i)
+        print test
+        for i in range(len(test)):
+            print test[i]
+            print ap1.test(test, i), ap2.test(test, i), ap3.test(test, i)
+            print r0.applies(test, i)
+            print r1.applies(test, i)
+            print r2.applies(test, i)
 
-    my_print("\nTest BrillRuleTemplate")
+        my_print("\nTest BrillRuleTemplate")
 
     train = [('T', 'B'), ('h', 'E'), ('i', 'E'), ('s', 'E'), (' ', 'S'), ('i', 'B'), ('s', 'E'), (' ', 'S'), ('a', 'S'), (' ', 'S'), ('t', 'B'), ('e', 'E'), ('s', 'E'), ('t', 'E'), ('.', 'S')]
 
-    back1tag = BrillRuleTemplate([[(-1, AtomicPredicate.T_TAG)]])
-    ahead1tag = BrillRuleTemplate([[(1, AtomicPredicate.T_TAG)]])
-    back1class_ahead1char = BrillRuleTemplate([[(-1, AtomicPredicate.T_CLASS)], [(1, AtomicPredicate.T_CHAR)]])
+    if test:
+        back1tag = BrillRuleTemplate([[(-1, AtomicPredicate.T_TAG)]])
+        ahead1tag = BrillRuleTemplate([[(1, AtomicPredicate.T_TAG)]])
+        back1class_ahead1char = BrillRuleTemplate([[(-1, AtomicPredicate.T_CLASS)], [(1, AtomicPredicate.T_CHAR)]])
 
-    for i, (char, tag) in enumerate(train):
-        my_print(i, (char, tag))
-        my_print(back1tag.form_rule(tag, 'X', train, i))
-        my_print(ahead1tag.form_rule(tag, 'X', train, i))
-        my_print(back1class_ahead1char.form_rule(tag, 'X', train, i))
-        print ""
+        for i, (char, tag) in enumerate(train):
+            my_print(i, (char, tag))
+            my_print(back1tag.form_rule(tag, 'X', train, i))
+            my_print(ahead1tag.form_rule(tag, 'X', train, i))
+            my_print(back1class_ahead1char.form_rule(tag, 'X', train, i))
+            print ""
 
-    my_print("\nTest Everything")
+        my_print("\nTest Everything")
 
     test = "This is not a test."
 

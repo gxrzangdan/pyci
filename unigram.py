@@ -65,7 +65,7 @@ def demo():
 
     tagset = TagSet(['A'], ['B'], bintag)
     tagger = UnigramTagger(tagset, words)
-    segger = TagSeg(tagset, tagger)
+    segger = TagSeg(tagset, tagger.tag)
 
     s = 'ababbabba'
     print [i for i in tagger.tag(s)]
