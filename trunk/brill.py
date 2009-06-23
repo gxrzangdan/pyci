@@ -686,7 +686,7 @@ def demo():
 
     test = "This is not a test."
 
-    brill = BrillTagger(bes, stupid_tagger, trace=True)
+    brill = BrillTagger(bes, stupid_tagger)
     brill.train(train, [
         # unigram
         BrillRuleTemplate([[(-1, AtomicPredicate.T_TAG)]]),
@@ -699,7 +699,10 @@ def demo():
         BrillRuleTemplate([[(-1, AtomicPredicate.T_CHAR)],
                            [(1, AtomicPredicate.T_CHAR)]])],
                 20, 1)
-    print brill.rules
+    print "Our rules:"
+    for rule in brill.rules:
+        print rule
+    print "Let's try"
     tagged_test = brill.tag(test)
     print [i for i in bes.untag(tagged_test)]
 
