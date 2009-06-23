@@ -46,7 +46,7 @@ class TagSet(object):
             for chartuple in self.tagger(word):
                 yield chartuple
 
-    def untag(self, tagged_sent, strict=True):
+    def untag(self, tagged_sent, strict=True, verbose=False):
         """Untag a sentence into a list of words.
 
         @type tagged_sent: a list of (character, tag) tuples
@@ -60,6 +60,8 @@ class TagSet(object):
         """
         word = ""
         for char, tag in tagged_sent:
+            if verbose:
+                print char, tag
             if tag in self.itags:
                 if word:
                     yield word
@@ -85,8 +87,8 @@ class TagSeg(object):
         self.tagset = tagset
         self.tagger = tagger
 
-    def seg(self, sent):
-        return [i for i in self.tagset.untag(self.tagger(sent), False)]
+    def seg(self, sent, verbose=False):
+        return [i for i in self.tagset.untag(self.tagger(sent), False, verbose)]
 
 def demo():
     print ":::DEMO for tagset/api.py:::"

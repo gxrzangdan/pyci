@@ -62,6 +62,42 @@ class BMESTagSet(TagSet):
 
         TagSet.__init__(self, ['B', 'S'], ['M','E'], tagger)
 
+    def untag(self, tagged_sent, strict=True, verbose=False):
+        """Untag a sentence into a list of words.
+
+        @type tagged_sent: a list of (character, tag) tuples
+        @param tagged_sent: the sentence to be untagged
+        @type strict: bool
+        @param strict: whether untagging is strict, if True, a
+        TagError will be raise if the tag is in neither self.itags nor
+        self.otags, otherwise, the character will be treated as if
+        it's a single character word
+        @return: generator
+        """
+        word = ""
+        for char, tag in tagged_sent:
+            if verbose:
+                print char, tag
+            if tag in self.itags:
+                if word:
+                    yield word
+                word = char
+            elif tag == 'E':
+                word += char
+                yield word
+                word = ""
+            elif tag in self.otags:
+                word += char
+            else:
+                if strict:
+                    raise TagError()
+                if word:
+                    yield word
+                word = ""
+                yield char
+        if word:
+            yield word
+
 
 class B123MESTagSet(TagSet):
     """Begin{1,2,3} Middle End Single
