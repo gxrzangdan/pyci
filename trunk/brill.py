@@ -188,6 +188,12 @@ class BrillRuleTemplate(object):
         # TODO: how do we support pred_not = False?
         self._test = test
 
+    def __str__(self):
+        return "BrillRuleTemplate: " + str(self._test)
+
+    def __repr__(self):
+        return "BrillRuleTemplate: " + repr(self._test)
+
     def form_rule(self, from_tag, to_tag, res, idx):
         """Form a BrillRule with given from-tag and to-tag which
         corrects the error in res[idx].
@@ -232,6 +238,21 @@ class BrillRuleTemplate(object):
                                                         ptype)))
             test.append(new_clause)
         return BrillRule(from_tag, to_tag, test)
+
+
+class UnigramBrillRuleTemplate(BrillRuleTemplate):
+    def __init__(self, offset, ptype):
+        BrillRuleTemplate.__init__(self, [[(offset, ptype)]])
+
+
+class BigramBrillRuleTemplate(BrillRuleTemplate):
+    def __init__(self, op1, op2):
+        BrillRuleTemplate.__init__(self, [[op1], [op2]])
+
+
+class TrigramBrillRuleTemplate(BrillRuleTemplate):
+    def __init__(self, op1, op2, op3):
+        BrillRuleTemplate.__init__(self, [[op1], [op2], [op3]])
 
 
 class BrillTagger(object):
@@ -296,10 +317,10 @@ class BrillTagger(object):
             my_print("\tfinal:", res)
         return res
 
-    def train(self, train, rule_templates, max_rules, min_score):
+    def train(self, train, rule_templates, max_rules, min_score, verbose=False):
         """Train with given rule templates
 
-        @type train: a list of (character, tag) tuples
+        @type train: list of words
         @param train: the training corpus
 
         @type rule_templates: a list of BrillRuleTemplate
@@ -310,13 +331,23 @@ class BrillTagger(object):
 
         @type min_score: integer
         @param min_score: mininum improvement score a rule should get
+
+        @type verbose: bool
+        @param verbose: whether to give verbose output during training
         """
         # `declaration', these are to be used in helper functions
         trace = self.trace
+        if trace:
+            verbose = True
         res = []
         tag_to_index = defaultdict(set)
         error_idx = defaultdict(set)
         correct_idx = defaultdict(set)
+        train = [i for i in self.tagset.tag(train)]
+
+        if verbose:
+            print "Training corpus loaded, %d characters" % len(train)
+            print "Using %d templates" % len(rule_templates)
 
         if trace:
             my_print("train:")
@@ -469,6 +500,9 @@ class BrillTagger(object):
                 correct_idx[tag].add(idx)
             else:
                 error_idx[tag].add(idx)
+        if verbose:
+            print "After initial tagging, we have %d errors" % \
+                  sum([len(error_idx[i]) for i in error_idx])
         if trace:
             my_print("train: ", [(res[i][0], train[i][1], res[i][1])
                               for i in range(len(res))])
@@ -511,11 +545,20 @@ class BrillTagger(object):
                                   for i in range(len(res))])
                         my_print("error:", dict(error_idx))
                         my_print("correct:", dict(correct_idx))
+                    if verbose:
+                        print rule, "added"
+                        print "Now %d errors (%d corrections)" % \
+                              (sum([len(error_idx[i]) for i in error_idx]),
+                               score)
+
                 else:
                     break
             else:
                 break
         # done
+        if verbose:
+            print "Training complete"
+            print "New rule size: %d\n" % len(rules)
         self.rules = rules
 
 
@@ -672,9 +715,8 @@ def demo(test=False):
 
         my_print("\nTest BrillRuleTemplate")
 
-    train = [('T', 'B'), ('h', 'E'), ('i', 'E'), ('s', 'E'), (' ', 'S'), ('i', 'B'), ('s', 'E'), (' ', 'S'), ('a', 'S'), (' ', 'S'), ('t', 'B'), ('e', 'E'), ('s', 'E'), ('t', 'E'), ('.', 'S')]
+        train = [('T', 'B'), ('h', 'E'), ('i', 'E'), ('s', 'E'), (' ', 'S'), ('i', 'B'), ('s', 'E'), (' ', 'S'), ('a', 'S'), (' ', 'S'), ('t', 'B'), ('e', 'E'), ('s', 'E'), ('t', 'E'), ('.', 'S')]
 
-    if test:
         back1tag = BrillRuleTemplate([[(-1, AtomicPredicate.T_TAG)]])
         ahead1tag = BrillRuleTemplate([[(1, AtomicPredicate.T_TAG)]])
         back1class_ahead1char = BrillRuleTemplate([[(-1, AtomicPredicate.T_CLASS)], [(1, AtomicPredicate.T_CHAR)]])
@@ -688,21 +730,22 @@ def demo(test=False):
 
         my_print("\nTest Everything")
 
+    train = ["This", " ", "is", " ", "a", "test", "."]
     test = "This is not a test."
 
     brill = BrillTagger(bes, stupid_tagger)
     brill.train(train, [
         # unigram
-        BrillRuleTemplate([[(-1, AtomicPredicate.T_TAG)]]),
-        BrillRuleTemplate([[(1, AtomicPredicate.T_TAG)]]),
-        BrillRuleTemplate([[(-1, AtomicPredicate.T_CHAR)]]),
-        BrillRuleTemplate([[(1, AtomicPredicate.T_CHAR)]]),
+        UnigramBrillRuleTemplate(-1, AtomicPredicate.T_TAG),
+        UnigramBrillRuleTemplate(1, AtomicPredicate.T_TAG),
+        UnigramBrillRuleTemplate(-1, AtomicPredicate.T_CHAR),
+        UnigramBrillRuleTemplate(1, AtomicPredicate.T_CHAR),
         # bigram
-        BrillRuleTemplate([[(-1, AtomicPredicate.T_TAG)],
-                           [(1, AtomicPredicate.T_TAG)]]),
-        BrillRuleTemplate([[(-1, AtomicPredicate.T_CHAR)],
-                           [(1, AtomicPredicate.T_CHAR)]])],
-                20, 1)
+        BigramBrillRuleTemplate((-1, AtomicPredicate.T_TAG),
+                                (1, AtomicPredicate.T_TAG)),
+        BigramBrillRuleTemplate((-1, AtomicPredicate.T_CHAR),
+                                (1, AtomicPredicate.T_CHAR))],
+                20, 1, True)
     print "Our rules:"
     for rule in brill.rules:
         print rule
