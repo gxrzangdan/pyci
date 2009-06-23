@@ -17,10 +17,10 @@ num_list = set([i for i in u"0123456789０１２３４５６７８９零一二�
 date_list = set([i for i in u"年月日周时分秒"])
 letter_list = set([i for i in u"abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZａｂｃｄｅｆｇｈｉｊｋｌｍｎｏｐｑｒｓｔｕｖｗｘｙｚＡＢＣＤＥＦＧＨＩＪＫＬＭＮＯＰＱＲＳＴＵＶＷＸＹＺ"])
 
-C_NUM = 0
-C_DATE = 1
-C_LETTER = 2
-C_OTHER = 3
+C_NUM = "NUM"
+C_DATE = "DATE"
+C_LETTER = "LETTER"
+C_OTHER = "OTHER"
 
 def char_class(char):
     if char in num_list:
